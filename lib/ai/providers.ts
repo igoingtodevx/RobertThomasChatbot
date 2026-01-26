@@ -1,4 +1,5 @@
-import { gateway } from "@ai-sdk/gateway";
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
 import {
   customProvider,
   extractReasoningMiddleware,
@@ -36,27 +37,50 @@ export function getLanguageModel(modelId: string) {
     modelId.includes("reasoning") || modelId.endsWith("-thinking");
 
   if (isReasoningModel) {
-    const gatewayModelId = modelId.replace(THINKING_SUFFIX_REGEX, "");
+    const cleanModelId = modelId.replace(THINKING_SUFFIX_REGEX, "");
+    
+    // Extract provider and model name
+    const [provider, ...modelParts] = cleanModelId.split("/");
+    const model = modelParts.join("/");
+
+    let baseModel;
+    if (provider === "anthropic") {
+      baseModel = anthropic(model);
+    } else if (provider === "openai") {
+      baseModel = openai(model);
+    } else {
+      throw new Error(`Unsupported provider: ${provider}`);
+    }
 
     return wrapLanguageModel({
-      model: gateway.languageModel(gatewayModelId),
+      model: baseModel,
       middleware: extractReasoningMiddleware({ tagName: "thinking" }),
     });
   }
 
-  return gateway.languageModel(modelId);
+  // Extract provider and model name
+  const [provider, ...modelParts] = modelId.split("/");
+  const model = modelParts.join("/");
+
+  if (provider === "anthropic") {
+    return anthropic(model);
+  } else if (provider === "openai") {
+    return openai(model);
+  } else {
+    throw new Error(`Unsupported provider: ${provider}`);
+  }
 }
 
 export function getTitleModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("title-model");
   }
-  return gateway.languageModel("google/gemini-2.5-flash-lite");
+  return anthropic("claude-haiku-4-5");
 }
 
 export function getArtifactModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("artifact-model");
   }
-  return gateway.languageModel("anthropic/claude-haiku-4.5");
+  return anthropic("claude-haiku-4-5");
 }

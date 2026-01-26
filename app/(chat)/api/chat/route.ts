@@ -36,7 +36,87 @@ import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 
+// RAG Imports
+import { supabase } from "@/lib/supabase";
+import { generateEmbedding } from "@/lib/embeddings";
+
 export const maxDuration = 60;
+
+// RAG: Suche passende Dokumente aus der Knowledge Base
+interface DocumentMatch {
+  id: string;
+  content: string;
+  metadata: {
+    brand?: string;
+    category?: string;
+    url?: string;
+    [key: string]: unknown;
+  };
+  similarity: number;
+}
+
+async function searchKnowledgeBase(query: string): Promise<DocumentMatch[]> {
+  try {
+    const embedding = await generateEmbedding(query);
+    
+    const { data, error } = await supabase.rpc("match_documents", {
+      query_embedding: embedding,
+      match_threshold: 0.5,
+      match_count: 4,
+    });
+
+    if (error) {
+      console.error("Error searching knowledge base:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error in searchKnowledgeBase:", error);
+    return [];
+  }
+}
+
+// RAG: Baue den Kontext-String aus den gefundenen Dokumenten
+function buildRAGContext(documents: DocumentMatch[]): string {
+  if (documents.length === 0) {
+    return "";
+  }
+
+  const contextParts = documents.map((doc, index) => {
+    const source = doc.metadata?.url ? `\nQuelle: ${doc.metadata.url}` : "";
+    const brand = doc.metadata?.brand ? ` [${doc.metadata.brand}]` : "";
+    return `--- Dokument ${index + 1}${brand} ---\n${doc.content}${source}`;
+  });
+
+  return contextParts.join("\n\n");
+}
+
+// RAG: Erstelle den erweiterten System-Prompt mit Kontext
+function buildRAGSystemPrompt(basePrompt: string, ragContext: string): string {
+  if (!ragContext) {
+    return basePrompt;
+  }
+
+  const ragInstructions = `
+Du bist ein Experte für Robert Thomas GmbH + Co. KG, den Hersteller von ROTHO (Industrieprodukte) und THOMAS (Haushaltsprodukte).
+
+WICHTIG - Unterscheide STRIKT zwischen:
+- ROTHO: Industrieprodukte (Absauganlagen, Filter, Entstauber für Industrie/Handwerk)
+- THOMAS: Haushaltsgeräte (Staubsauger, Waschsauger für Endverbraucher)
+
+ACHTUNG: "Thomas Magnete" ist ein ANDERES Unternehmen und gehört NICHT zu Robert Thomas!
+
+Beantworte Fragen NUR basierend auf dem folgenden Kontext aus der Wissensdatenbank. Wenn die Antwort nicht im Kontext steht, sage ehrlich, dass du diese Information nicht hast.
+
+=== WISSENSDATENBANK KONTEXT ===
+${ragContext}
+=== ENDE KONTEXT ===
+
+`;
+
+  return ragInstructions + basePrompt;
+}
 
 function getStreamContext() {
   try {
@@ -136,12 +216,37 @@ export async function POST(request: Request) {
 
     const modelMessages = await convertToModelMessages(uiMessages);
 
+    // RAG: Extrahiere die letzte User-Nachricht für die Suche
+    const lastUserMessage = uiMessages
+      .filter((m) => m.role === "user")
+      .pop();
+    
+    let ragContext = "";
+    if (lastUserMessage) {
+      // Extrahiere Text aus der Nachricht
+      const userQuery = lastUserMessage.parts
+        ?.filter((part): part is { type: "text"; text: string } => part.type === "text")
+        .map((part) => part.text)
+        .join(" ") || "";
+      
+      if (userQuery) {
+        console.log("🔍 RAG: Searching knowledge base for:", userQuery.substring(0, 100));
+        const matchedDocs = await searchKnowledgeBase(userQuery);
+        console.log(`📚 RAG: Found ${matchedDocs.length} matching documents`);
+        ragContext = buildRAGContext(matchedDocs);
+      }
+    }
+
+    // RAG: Erweitere den System-Prompt mit Kontext
+    const baseSystemPrompt = systemPrompt({ selectedChatModel, requestHints });
+    const enhancedSystemPrompt = buildRAGSystemPrompt(baseSystemPrompt, ragContext);
+
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
         const result = streamText({
           model: getLanguageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: enhancedSystemPrompt,
           messages: modelMessages,
           stopWhen: stepCountIs(5),
           experimental_activeTools: isReasoningModel
