@@ -317,7 +317,7 @@ function PureMultimodalInput({
       />
 
       <PromptInput
-        className="rounded-xl border border-border bg-background p-3 shadow-xs transition-all duration-200 focus-within:border-border hover:border-muted-foreground/50"
+        className="rounded-xl border border-white/10 bg-background/80 backdrop-blur-sm p-3 shadow-xs transition-all duration-200 focus-within:ring-1 focus-within:ring-[hsl(var(--primary))] hover:border-muted-foreground/50"
         onSubmit={(event) => {
           event.preventDefault();
           if (!input.trim() && attachments.length === 0) {
@@ -384,10 +384,13 @@ function PureMultimodalInput({
               selectedModelId={selectedModelId}
               status={status}
             />
-            <ModelSelectorCompact
-              onModelChange={onModelChange}
-              selectedModelId={selectedModelId}
-            />
+            {/* Model selector hidden - using default model */}
+            {false && (
+              <ModelSelectorCompact
+                onModelChange={onModelChange}
+                selectedModelId={selectedModelId}
+              />
+            )}
           </PromptInputTools>
 
           {status === "submitted" ? (

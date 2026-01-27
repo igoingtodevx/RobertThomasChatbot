@@ -21,8 +21,8 @@
   --popover-foreground: 222.2 84% 4.9%;
   --primary: 210 100% 40%;
   --primary-foreground: 210 40% 98%;
-  --secondary: 25 95% 50%;
-  --secondary-foreground: 210 40% 98%;
+  --secondary: 15 100% 55%;
+  --secondary-foreground: 0 0% 100%;
   --muted: 210 40% 96.1%;
   --muted-foreground: 215.4 16.3% 46.9%;
   --accent: 210 40% 96.1%;
@@ -48,6 +48,10 @@
   /* border radius unit */
   --radius: 0.5rem;
   --sidebar: hsl(0 0% 98%);
+  /* Landing Page Hero Colors */
+  --hero-dark: 220 20% 12%;
+  --hero-light: 220 15% 20%;
+  --secondary-light: 15 100% 65%;
 }
 
 /* define design tokens (dark mode) */
@@ -315,4 +319,63 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ========================================
+   THORO PREMIUM COCKPIT STYLES
+   ======================================== */
+
+/* Atmospheric gradient background */
+.thoro-gradient {
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(0, 102, 204, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(255, 107, 53, 0.06) 0%, transparent 50%),
+    hsl(var(--background));
+}
+
+/* Light mode: Much more subtle */
+:root:not(.dark) .thoro-gradient {
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(0, 102, 204, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(255, 107, 53, 0.02) 0%, transparent 50%),
+    hsl(var(--background));
+}
+
+/* Glass card utility for suggestions */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: hsl(var(--primary) / 0.4) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 102, 204, 0.12);
+}
+
+/* Light mode glass card */
+:root:not(.dark) .glass-card {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+:root:not(.dark) .glass-card:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: hsl(var(--primary) / 0.3) !important;
+  box-shadow: 0 8px 32px rgba(0, 102, 204, 0.08);
+}
+
+/* Sidebar glassmorphism override */
+[data-sidebar="sidebar"] {
+  background: rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(16px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+:root:not(.dark) [data-sidebar="sidebar"] {
+  background: rgba(255, 255, 255, 0.7) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.05) !important;
 }

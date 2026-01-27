@@ -15,27 +15,43 @@ type SuggestedActionsProps = {
 
 function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
   const suggestedActions = [
-    "What are the advantages of using Next.js?",
-    "Write code to demonstrate Dijkstra's algorithm",
-    "Help me write an essay about Silicon Valley",
-    "What is the weather in San Francisco?",
+    {
+      heading: "Für Zuhause",
+      subheading: "Tierhaare & Parkett",
+      message: "Welcher Staubsauger ist am besten für Tierhaare und Parkett geeignet?",
+    },
+    {
+      heading: "Für Industrie",
+      subheading: "Energiekosten senken",
+      message: "Wie können wir die Energiekosten bei der Ziegeltrocknung senken?",
+    },
+    {
+      heading: "Service & Support",
+      subheading: "Ersatzteile finden",
+      message: "Wo finde ich Ersatzteile für meinen AQUA+ Staubsauger?",
+    },
+    {
+      heading: "Über uns",
+      subheading: "Firmengeschichte",
+      message: "Erzähl mir mehr über die Geschichte von Robert Thomas.",
+    },
   ];
 
   return (
     <div
-      className="grid w-full gap-2 sm:grid-cols-2"
+      className="grid w-full gap-3 sm:grid-cols-2"
       data-testid="suggested-actions"
     >
-      {suggestedActions.map((suggestedAction, index) => (
+      {suggestedActions.map((action, index) => (
         <motion.div
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           initial={{ opacity: 0, y: 20 }}
-          key={suggestedAction}
+          key={action.message}
           transition={{ delay: 0.05 * index }}
         >
           <Suggestion
-            className="h-auto w-full whitespace-normal p-3 text-left"
+            className="glass-card h-auto w-full whitespace-normal rounded-xl p-4 text-left flex flex-col gap-1"
             onClick={(suggestion) => {
               window.history.pushState({}, "", `/chat/${chatId}`);
               sendMessage({
@@ -43,9 +59,10 @@ function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
                 parts: [{ type: "text", text: suggestion }],
               });
             }}
-            suggestion={suggestedAction}
+            suggestion={action.message}
           >
-            {suggestedAction}
+            <span className="font-semibold text-sm text-foreground">{action.heading}</span>
+            <span className="text-xs text-muted-foreground">{action.subheading}</span>
           </Suggestion>
         </motion.div>
       ))}
