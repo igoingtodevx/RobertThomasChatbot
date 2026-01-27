@@ -1,7 +1,7 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/artifact";
 
-// --- ARTIFACTS PROMPT (Gekürzt & Sauber) ---
+// --- ARTIFACTS PROMPT ---
 export const artifactsPrompt = `
 Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen.
 
@@ -13,7 +13,6 @@ Artifacts is a special user interface mode that helps users with writing, editin
 **When NOT to use \`createDocument\`:**
 - For short informational content.
 - For conversational responses.
-- For Code snippets (You are a sales bot, do not write code).
 
 **Using \`updateDocument\`:**
 - Default to full document rewrites for major changes.
@@ -24,7 +23,7 @@ Do not update document right after creating it. Wait for user feedback.
 
 export const regularPrompt = 'Du bist ein hilfreicher Assistent.';
 
-// --- SYSTEM PROMPT (Hybrid: Thoro Identity + v0.5 Logic) ---
+// --- SYSTEM PROMPT (Thoro Identity + Business Logic) ---
 export const customSystemPrompt = `Du bist Thoro, der offizielle KI-Markenbotschafter für die Robert Thomas Gruppe (Neunkirchen, Siegerland).
 
 🎯 **DEINE IDENTITÄT & MISSION:**
@@ -61,8 +60,7 @@ Nutze RAG-Daten für Fakten.
 🛡️ **ETHISCHE GRENZEN & NOTFALL-PLAN:**
 1.  **Erfinde NIEMALS Fakten.** Wenn du etwas nicht im Kontext findest, sag ehrlich:
     *"Das kann ich momentan nicht mit 100%iger Sicherheit beantworten. Bevor ich etwas Falsches sage, wenden Sie sich bitte an unsere Experten unter Tel: +49 2735 788-0"*
-2.  **Verkaufen:** Du darfst Kaufempfehlungen geben ("Das Modell X passt perfekt zu dir"), aber dränge niemanden.
-3.  **Keine Fake-Knappheit:** Sag nie "Nur noch 2 da", wenn du es nicht weißt.
+2.  **Verkaufen:** Du darfst Kaufempfehlungen geben, aber dränge niemanden.
 
 Nutze den bereitgestellten Kontext für alle technischen Daten.`;
 
@@ -70,53 +68,4 @@ export type RequestHints = {
   latitude: Geo["latitude"];
   longitude: Geo["longitude"];
   city: Geo["city"];
-  country: Geo["country"];
-};
-
-export const getRequestPromptFromHints = (requestHints: RequestHints) => `\
-About the origin of user's request:
-- lat: ${requestHints.latitude}
-- lon: ${requestHints.longitude}
-- city: ${requestHints.city}
-- country: ${requestHints.country}
-`;
-
-export const systemPrompt = ({
-  selectedChatModel,
-  requestHints,
-}: {
-  selectedChatModel: string;
-  requestHints: RequestHints;
-}) => {
-  const requestPrompt = getRequestPromptFromHints(requestHints);
-
-  if (
-    selectedChatModel.includes("reasoning") ||
-    selectedChatModel.includes("thinking")
-  ) {
-    return `${customSystemPrompt}\n\n${requestPrompt}`;
-  }
-
-  return `${customSystemPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
-};
-
-// --- TITEL GENERATOR ---
-export const titlePrompt = `Generate a short chat title (2-5 words) summarizing the user's message.
-The title MUST be in GERMAN.
-
-Examples:
-- "wie wird das wetter" → Wettervorhersage
-- "hilfe bei meinem staubsauger" → Sauger Hilfe
-- "hallo" → Neue Unterhaltung
-
-Bad outputs:
-- "# Space Essay"
-- "Title: Wetter"`;
-
-// Helper für TypeScript
-export const updateDocumentPrompt = (
-  currentContent: string | null,
-  type: ArtifactKind
-) => {
-  return `Improve the following contents based on the given prompt.\n${currentContent}`;
-};
+  country: Geo
