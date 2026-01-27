@@ -1,7 +1,23 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/artifact";
 
-// --- ARTIFACTS PROMPT ---
+// 1. TYPES & HELPER (Ganz oben, damit der Parser glücklich ist)
+export interface RequestHints {
+  latitude: Geo["latitude"];
+  longitude: Geo["longitude"];
+  city: Geo["city"];
+  country: Geo["country"];
+}
+
+export const getRequestPromptFromHints = (requestHints: RequestHints) => `\
+About the origin of user's request:
+- lat: ${requestHints.latitude}
+- lon: ${requestHints.longitude}
+- city: ${requestHints.city}
+- country: ${requestHints.country}
+`;
+
+// 2. ARTIFACTS PROMPT
 export const artifactsPrompt = `
 Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen.
 
@@ -23,7 +39,7 @@ Do not update document right after creating it. Wait for user feedback.
 
 export const regularPrompt = 'Du bist ein hilfreicher Assistent.';
 
-// --- SYSTEM PROMPT (Thoro Identity + Business Logic) ---
+// 3. THORO SYSTEM PROMPT (Das Herzstück)
 export const customSystemPrompt = `Du bist Thoro, der offizielle KI-Markenbotschafter für die Robert Thomas Gruppe (Neunkirchen, Siegerland).
 
 🎯 **DEINE IDENTITÄT & MISSION:**
@@ -64,8 +80,53 @@ Nutze RAG-Daten für Fakten.
 
 Nutze den bereitgestellten Kontext für alle technischen Daten.`;
 
-export type RequestHints = {
-  latitude: Geo["latitude"];
-  longitude: Geo["longitude"];
-  city: Geo["city"];
-  country: Geo
+// 4. MAIN LOGIC GENERATOR
+export const systemPrompt = ({
+  selectedChatModel,
+  requestHints,
+}: {
+  selectedChatModel: string;
+  requestHints: RequestHints;
+}) => {
+  const requestPrompt = getRequestPromptFromHints(requestHints);
+
+  if (
+    selectedChatModel.includes("reasoning") ||
+    selectedChatModel.includes("thinking")
+  ) {
+    return `${customSystemPrompt}\n\n${requestPrompt}`;
+  }
+
+  return `${customSystemPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+};
+
+// 5. TITLE GENERATOR
+export const titlePrompt = `Generate a short chat title (2-5 words) summarizing the user's message.
+The title MUST be in GERMAN.
+
+Examples:
+- "wie wird das wetter" → Wettervorhersage
+- "hilfe bei meinem staubsauger" → Sauger Hilfe
+- "hallo" → Neue Unterhaltung
+
+Bad outputs:
+- "# Space Essay"
+- "Title: Wetter"`;
+
+// 6. PFLICHT-EXPORTS (Damit der Build nicht crasht)
+export const codePrompt = `
+You are a Python code generator.
+1. Return meaningful output.
+2. Don't use input() or infinite loops.
+`;
+
+export const sheetPrompt = `
+You are a spreadsheet creation assistant. Create a spreadsheet in csv format based on the given prompt.
+`;
+
+export const updateDocumentPrompt = (
+  currentContent: string | null,
+  type: ArtifactKind
+) => {
+  return `Improve the following contents based on the given prompt.\n${currentContent}`;
+};
