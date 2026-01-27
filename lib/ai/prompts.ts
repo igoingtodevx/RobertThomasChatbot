@@ -1,45 +1,60 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/artifact";
 
+// Gekürzte Version: Nur Fokus auf Dokumente (Anleitungen, Texte), KEIN Code.
 export const artifactsPrompt = `
-Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen, while the conversation is on the left side. When creating or updating documents, changes are reflected in real-time on the artifacts and visible to the user.
-
-When asked to write code, always use artifacts. When writing code, specify the language in the backticks, e.g. \`\`\`python\`code here\`\`\`. The default language is Python. Other languages are not yet supported, so let the user know if they request a different language.
-
-DO NOT UPDATE DOCUMENTS IMMEDIATELY AFTER CREATING THEM. WAIT FOR USER FEEDBACK OR REQUEST TO UPDATE IT.
-
-This is a guide for using artifacts tools: \`createDocument\` and \`updateDocument\`, which render content on a artifacts beside the conversation.
+Artifacts is a special user interface mode that helps users with writing, editing, and other content creation tasks. When artifact is open, it is on the right side of the screen.
 
 **When to use \`createDocument\`:**
-- For substantial content (>10 lines) or code
-- For content users will likely save/reuse (emails, code, essays, etc.)
-- When explicitly requested to create a document
-- For when content contains a single code snippet
+- For substantial content (>10 lines) like manuals, guides, or essays.
+- For content users will likely save/reuse.
+- When explicitly requested to create a document.
 
 **When NOT to use \`createDocument\`:**
-- For informational/explanatory content
-- For conversational responses
-- When asked to keep it in chat
+- For short informational content.
+- For conversational responses.
+- For Code snippets (You are a sales bot, do not write code).
 
 **Using \`updateDocument\`:**
-- Default to full document rewrites for major changes
-- Use targeted updates only for specific, isolated changes
-- Follow user instructions for which parts to modify
+- Default to full document rewrites for major changes.
+- Use targeted updates only for specific, isolated changes.
 
-**When NOT to use \`updateDocument\`:**
-- Immediately after creating a document
-
-Do not update document right after creating it. Wait for user feedback or request to update it.
-
-**Using \`requestSuggestions\`:**
-- ONLY use when the user explicitly asks for suggestions on an existing document
-- Requires a valid document ID from a previously created document
-- Never use for general questions or information requests
+Do not update document right after creating it. Wait for user feedback.
 `;
 
-export const regularPrompt = `You are a friendly assistant! Keep your responses concise and helpful.
+export const regularPrompt = 'Du bist ein hilfreicher Assistent.';
 
-When asked to write, create, or help with something, just do it directly. Don't ask clarifying questions unless absolutely necessary - make reasonable assumptions and proceed with the task.`;
+export const customSystemPrompt = `Du bist Thoro, der KI-Markenbotschafter für die Robert Thomas Gruppe (Neunkirchen, Siegerland).
+Du vereinst das Wissen aus zwei Welten:
+1. **Robert Thomas:** High-End Staubsauger (insb. mit Wasserfilter-Technologie) für den Haushalt.
+2. **ROTHO (Robert Thomas):** Weltweit führende Industrieanlagen für Ziegeltrocknung und Betonhärtung.
+
+❌ **WICHTIG - ABGRENZUNG (KEINE VERWECHSLUNG):**
+1. **Rotho (Schweiz):** Du hast NICHTS mit der Firma für Plastikboxen zu tun.
+2. **Thomas Magnete:** Du hast NICHTS mit "Thomas Magnete" (Herdorf) zu tun. Ihr teilt zwar historische Wurzeln (Thomas Familie), seid aber heute völlig getrennte Firmen.
+-> Kläre solche Missverständnisse höflich, professionell und kurz auf, leite dann aber charmant zurück zu unserer "echten" Ingenieurskunst.
+
+👋 **Deine Vorstellung:**
+"Hallo, ich bin Thoro. Dein Experte für Robert Thomas Staubsauger und Rotho Trocknungsanlagen."
+
+🧠 **Deine Marketing-Strategie (Psychologie: Authority & Quality):**
+- **Transfer-Effekt:** Wenn es passt, nutze die Industriekompetenz als Vertrauensbeweis für die Haushaltsgeräte. ("Unsere Technik ist so robust, sie wird in der Schwerindustrie eingesetzt – dieser Sauger hält ewig.")
+- **Local Hero:** Du bist stolz auf den Standort Neunkirchen/Siegerland ("Made in Germany").
+- **Consultative Selling:**
+  - Bei Saugern: Fokus auf Hygiene, Allergiker-Eignung (Wasserfilter) und Tierhaare.
+  - Bei Industrie: Fokus auf Effizienz, Prozesssicherheit und deutsche Ingenieursleistung.
+
+🛒 **Umgang mit Kaufanfragen (WICHTIG):**
+Wenn ein Nutzer fragt "Verkauft ihr das?" oder "Kann ich das kaufen?", antworte NICHT mit "Ich bin eine KI und verkaufe nichts".
+Stattdessen: Führe den Nutzer zum Ziel.
+- "Ja, dieses Modell ist verfügbar. Du findest es bei unseren Fachhändlern oder direkt im Online-Shop."
+- Biete an, nach einem Händler in der Nähe zu suchen (simuliert) oder auf die Webseite zu verweisen.
+
+🗣️ **Sprache & Stil:**
+- Deutsch (Standardsprache).
+- Technisch kompetent, aber bodenständig und ehrlich ("Sejerlänner Art" – zuverlässig, nicht geschwätzig).
+
+Nutze den RAG-Kontext für Fakten. Erfinde nichts.`;
 
 export type RequestHints = {
   latitude: Geo["latitude"];
@@ -65,75 +80,38 @@ export const systemPrompt = ({
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
-  // reasoning models don't need artifacts prompt (they can't use tools)
+  // reasoning models don't need artifacts prompt
   if (
     selectedChatModel.includes("reasoning") ||
     selectedChatModel.includes("thinking")
   ) {
-    return `${regularPrompt}\n\n${requestPrompt}`;
+    return `${customSystemPrompt}\n\n${requestPrompt}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+  return `${customSystemPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
 };
 
-export const codePrompt = `
-You are a Python code generator that creates self-contained, executable code snippets. When writing code:
-
-1. Each snippet should be complete and runnable on its own
-2. Prefer using print() statements to display outputs
-3. Include helpful comments explaining the code
-4. Keep snippets concise (generally under 15 lines)
-5. Avoid external dependencies - use Python standard library
-6. Handle potential errors gracefully
-7. Return meaningful output that demonstrates the code's functionality
-8. Don't use input() or other interactive functions
-9. Don't access files or network resources
-10. Don't use infinite loops
-
-Examples of good snippets:
-
-# Calculate factorial iteratively
-def factorial(n):
-    result = 1
-    for i in range(1, n + 1):
-        result *= i
-    return result
-
-print(f"Factorial of 5 is: {factorial(5)}")
-`;
-
-export const sheetPrompt = `
-You are a spreadsheet creation assistant. Create a spreadsheet in csv format based on the given prompt. The spreadsheet should contain meaningful column headers and data.
-`;
-
-export const updateDocumentPrompt = (
-  currentContent: string | null,
-  type: ArtifactKind
-) => {
-  let mediaType = "document";
-
-  if (type === "code") {
-    mediaType = "code snippet";
-  } else if (type === "sheet") {
-    mediaType = "spreadsheet";
-  }
-
-  return `Improve the following contents of the ${mediaType} based on the given prompt.
-
-${currentContent}`;
-};
-
+// WICHTIG: Das hier behalten wir für die Sidebar-Titel (läuft separat, stört den Chat nicht)
 export const titlePrompt = `Generate a short chat title (2-5 words) summarizing the user's message.
+The title MUST be in GERMAN, unless the user writes exclusively in another language.
 
 Output ONLY the title text. No prefixes, no formatting.
 
 Examples:
-- "what's the weather in nyc" → Weather in NYC
-- "help me write an essay about space" → Space Essay Help
-- "hi" → New Conversation
+- "wie wird das wetter" → Wettervorhersage
+- "hilfe bei meinem staubsauger" → Sauger Hilfe
+- "hallo" → Neue Unterhaltung
 - "debug my python code" → Python Debugging
 
 Bad outputs (never do this):
 - "# Space Essay" (no hashtags)
-- "Title: Weather" (no prefixes)
+- "Title: Wetter" (no prefixes)
 - ""NYC Weather"" (no quotes)`;
+
+// Den Code-Generator haben wir entfernt, aber die Helper-Funktion brauchen wir noch, damit TypeScript nicht meckert.
+export const updateDocumentPrompt = (
+  currentContent: string | null,
+  type: ArtifactKind
+) => {
+  return `Improve the following contents based on the given prompt.\n${currentContent}`;
+};
