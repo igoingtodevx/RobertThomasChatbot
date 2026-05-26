@@ -1,71 +1,145 @@
-<a href="https://chat.vercel.ai/">
-  <img alt="Next.js 14 and App Router-ready AI chatbot." src="app/(chat)/opengraph-image.png">
-  <h1 align="center">Chat SDK</h1>
-</a>
+# Robert Intelligence — RAG-Chatbot für Robert Thomas GmbH
 
-<p align="center">
-    Chat SDK is a free, open-source template built with Next.js and the AI SDK that helps you quickly build powerful chatbot applications.
-</p>
+<div align="center">
+  <img src="public/images/demo-thumbnail.png" alt="Robert Intelligence Demo" width="800" />
+</div>
 
-<p align="center">
-  <a href="https://chat-sdk.dev"><strong>Read Docs</strong></a> ·
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#model-providers"><strong>Model Providers</strong></a> ·
-  <a href="#deploy-your-own"><strong>Deploy Your Own</strong></a> ·
-  <a href="#running-locally"><strong>Running locally</strong></a>
-</p>
-<br/>
+KI-gestützter Markenbotschafter für die Robert Thomas Gruppe. Beantwortet Kundenfragen zu **THOMAS** Staubsaugern (B2C) und **ROTHO** Industrieanlagen (B2B) mit echtem Produktwissen — kein Halluzinieren, sondern Retrieval-Augmented Generation aus einer kuratierten Wissensbasis.
 
-## Features
+## Was das System kann
 
-- [Next.js](https://nextjs.org) App Router
-  - Advanced routing for seamless navigation and performance
-  - React Server Components (RSCs) and Server Actions for server-side rendering and increased performance
-- [AI SDK](https://ai-sdk.dev/docs/introduction)
-  - Unified API for generating text, structured objects, and tool calls with LLMs
-  - Hooks for building dynamic chat and generative user interfaces
-  - Supports xAI (default), OpenAI, Fireworks, and other model providers
-- [shadcn/ui](https://ui.shadcn.com)
-  - Styling with [Tailwind CSS](https://tailwindcss.com)
-  - Component primitives from [Radix UI](https://radix-ui.com) for accessibility and flexibility
-- Data Persistence
-  - [Neon Serverless Postgres](https://vercel.com/marketplace/neon) for saving chat history and user data
-  - [Vercel Blob](https://vercel.com/storage/blob) for efficient file storage
-- [Auth.js](https://authjs.dev)
-  - Simple and secure authentication
+- **Zwei-Marken-Intelligenz**: THOMAS (Haushalt) mit Du-Ansprache, ROTHO (Industrie) mit Sie-Ansprache. Automatische Erkennung des Kundenkontexts.
+- **Phasenbasierte Gesprächsführung**: Bedarfsermittlung (Consultative Selling), Produktempfehlung, Social Proof — alles auf Deutsch, mit Siegerländer Tonalität.
+- **RAG mit pgvector**: Embeddings via OpenAI `text-embedding-3-small`, Vektorsuche in Supabase PostgreSQL, semantisches Matching mit Schwellwert 0.5.
+- **Wissensbasis aus echten Produktdaten**: Manuell kuratierte Knowledge Bases für beide Marken (insgesamt ca. 15.000+ Wörter Produktdaten), ingestiert über TypeScript-Ingestion-Pipeline.
+- **Abgrenzungslogik**: Erkennt und behandelt "Thomas Magnete" (Herdorf) und "Rotho Schweiz" korrekt — kein Verwechseln mit nicht-verwandten Firmen.
+- **Artifact-Mode**: Generiert Dokumente (Vergleiche, Anleitungen) im Chat, editierbar über ProseMirror-Editor.
+- **E2E-Tests**: Playwright-Testsuite für Auth, Chat, Model-Selector, API.
 
-## Model Providers
+## Tech Stack
 
-This template uses the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) to access multiple AI models through a unified interface. The default configuration includes [xAI](https://x.ai) models (`grok-2-vision-1212`, `grok-3-mini`) routed through the gateway.
+| Ebene | Technologie |
+|---|---|
+| Framework | Next.js 15 (App Router, React 19) |
+| Sprache | TypeScript (strict) |
+| KI-Orchestrierung | Vercel AI SDK 6.x |
+| LLM | Claude Sonnet 4 (Anthropic) |
+| Embeddings | OpenAI text-embedding-3-small |
+| Vektordatenbank | Supabase PostgreSQL + pgvector |
+| Chat-Historie | Vercel Postgres (Neon) |
+| Datei-Speicher | Vercel Blob |
+| Caching | Redis (Upstash) |
+| Auth | Auth.js v5 (NextAuth) |
+| UI | shadcn/ui, Tailwind CSS 4, Radix UI |
+| Testing | Playwright (4 E2E-Spezifikationen) |
+| Hosting | Vercel |
 
-### AI Gateway Authentication
+## Architektur
 
-**For Vercel deployments**: Authentication is handled automatically via OIDC tokens.
-
-**For non-Vercel deployments**: You need to provide an AI Gateway API key by setting the `AI_GATEWAY_API_KEY` environment variable in your `.env.local` file.
-
-With the [AI SDK](https://ai-sdk.dev/docs/introduction), you can also switch to direct LLM providers like [OpenAI](https://openai.com), [Anthropic](https://anthropic.com), [Cohere](https://cohere.com/), and [many more](https://ai-sdk.dev/providers/ai-sdk-providers) with just a few lines of code.
-
-## Deploy Your Own
-
-You can deploy your own version of the Next.js AI Chatbot to Vercel with one click:
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/templates/next.js/nextjs-ai-chatbot)
-
-## Running locally
-
-You will need to use the environment variables [defined in `.env.example`](.env.example) to run Next.js AI Chatbot. It's recommended you use [Vercel Environment Variables](https://vercel.com/docs/projects/environment-variables) for this, but a `.env` file is all that is necessary.
-
-> Note: You should not commit your `.env` file or it will expose secrets that will allow others to control access to your various AI and authentication provider accounts.
-
-1. Install Vercel CLI: `npm i -g vercel`
-2. Link local instance with Vercel and GitHub accounts (creates `.vercel` directory): `vercel link`
-3. Download your environment variables: `vercel env pull`
-
-```bash
-pnpm install
-pnpm db:migrate # Setup database or apply latest database changes
-pnpm dev
+```
+User Input
+    │
+    ▼
+┌─────────────────┐
+│  Chat Route API  │  app/(chat)/api/chat/route.ts
+└────────┬────────┘
+         │
+    ┌────▼────┐
+    │  RAG     │  searchKnowledgeBase() → pgvector match_documents()
+    │  Search  │  OpenAI Embedding → Supabase RPC
+    └────┬────┘
+         │ Kontext-Dokumente
+    ┌────▼────┐
+    │  Prompt  │  buildRAGSystemPrompt() → Claude Sonnet 4
+    │  Builder │  + customSystemPrompt (Thoro Persona)
+    └────┬────┘
+         │
+    ┌────▼────┐
+    │  Stream  │  Vercel AI SDK streamText()
+    │  Response│  UI Message Stream → React Client
+    └─────────┘
 ```
 
-Your app template should now be running on [localhost:3000](http://localhost:3000).
+## Projektstruktur
+
+```
+.
+├── app/
+│   ├── (auth)/          # Auth.js Login/Register
+│   ├── (chat)/           # Chat-Interface + API Routes
+│   │   ├── api/chat/     # Chat-API mit RAG-Integration
+│   │   └── page.tsx      # Chat-UI
+│   └── layout.tsx        # Root Layout (Metadata, Theme)
+├── components/           # UI-Komponenten
+│   ├── hero-section.tsx  # Landing Page mit Stats
+│   ├── mode-selector.tsx # THOMAS vs ROTHO Auswahl
+│   ├── chat-header.tsx   # Branding Header
+│   └── ...
+├── lib/
+│   ├── ai/               # Prompts, Provider, Tools
+│   │   ├── prompts.ts    # Thoro System-Prompt (150+ Zeilen)
+│   │   ├── providers.ts  # Modell-Konfiguration
+│   │   └── tools/        # createDocument, getWeather, etc.
+│   ├── db/               # Drizzle ORM + Supabase Schema
+│   ├── embeddings.ts     # OpenAI Embedding Client
+│   ├── supabase.ts       # Supabase Client (pgvector)
+│   └── ...
+├── knowledge_bases/      # Kuratierte Produktdaten
+│   ├── THOMAS_Complete.md  # Staubsauger (AQUA+, Zyklon, PET)
+│   └── ROTHO_Complete.md   # Industrieanlagen (Trocknung, Filter)
+├── scripts/
+│   └── ingest-manual.ts  # Wissensbasis → Embeddings → Supabase
+├── tests/
+│   ├── e2e/              # Playwright E2E-Tests
+│   └── fixtures.ts
+└── PROJECT_CONTEXT.md    # Entwickler-Dokumentation (Deutsch)
+```
+
+## Local Setup
+
+```bash
+# 1. Dependencies
+pnpm install
+
+# 2. Environment
+cp .env.example .env.local
+# → Trage ANTHROPIC_API_KEY, OPENAI_API_KEY, SUPABASE_* Keys ein
+
+# 3. Supabase Schema (pgvector + match_documents Funktion einrichten)
+# Siehe PROJECT_CONTEXT.md für die SQL-Migration
+
+# 4. Wissensbasis ingestieren
+pnpm tsx scripts/ingest-manual.ts
+
+# 5. Datenbank migrieren (Chat-Historie)
+pnpm db:migrate
+
+# 6. Dev-Server starten
+pnpm dev
+# → http://localhost:3000
+```
+
+## Deployment (Vercel)
+
+```bash
+vercel --prod
+```
+
+Umgebungsvariablen in Vercel Dashboard setzen (siehe `.env.example`). AI Gateway wird auf Vercel automatisch via OIDC authentifiziert.
+
+## Tests
+
+```bash
+pnpm test
+# Führt Playwright E2E-Tests aus:
+# - Auth (Login/Register)
+# - Chat (Nachrichten senden, RAG-Antworten)
+# - Model Selector (Modell-Wechsel)
+# - API (Chat-Endpunkt)
+```
+
+---
+
+**Gebaut für Robert Thomas GmbH + Co. KG, Neunkirchen, Siegerland.**
+
+*THOMAS — AQUA+ Technologie. ROTHO — Industrielle Trocknungssysteme. Made in Germany.*
