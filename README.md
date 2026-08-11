@@ -1,145 +1,53 @@
-# Robert Intelligence — RAG-Chatbot für Robert Thomas GmbH
+# Robert Thomas Chatbot
 
-<div align="center">
-  <img src="public/images/demo-thumbnail.png" alt="Robert Intelligence Demo" width="800" />
-</div>
+Ein Next.js-Chatbot-Prototyp für die im Repository enthaltenen THOMAS- und ROTHO-Wissensbasen. Die Chat-Route kann Nutzerfragen mit Embeddings gegen Supabase-Dokumente abgleichen und die Treffer als Kontext an das Sprachmodell weitergeben.
 
-KI-gestützter Markenbotschafter für die Robert Thomas Gruppe. Beantwortet Kundenfragen zu **THOMAS** Staubsaugern (B2C) und **ROTHO** Industrieanlagen (B2B) mit echtem Produktwissen — kein Halluzinieren, sondern Retrieval-Augmented Generation aus einer kuratierten Wissensbasis.
+## Status
 
-## Was das System kann
+**Implementierter, aber integrationsabhängiger Prototyp.** Auth-, Chat-, Artefakt-, Datei-Upload-, Datenbank- und RAG-Code sind im Repository vorhanden. Eine anonyme öffentliche Bereitstellung konnte bei diesem Audit nicht verifiziert werden: Der aktuelle Deployment-Einstieg leitet an den Guest-Auth-Flow weiter, der ohne eingerichtete Backend-Abhängigkeiten nicht als öffentlich nutzbare Chat-URL bestätigt werden konnte. Deshalb wird hier keine Live-URL behauptet.
 
-- **Zwei-Marken-Intelligenz**: THOMAS (Haushalt) mit Du-Ansprache, ROTHO (Industrie) mit Sie-Ansprache. Automatische Erkennung des Kundenkontexts.
-- **Phasenbasierte Gesprächsführung**: Bedarfsermittlung (Consultative Selling), Produktempfehlung, Social Proof — alles auf Deutsch, mit Siegerländer Tonalität.
-- **RAG mit pgvector**: Embeddings via OpenAI `text-embedding-3-small`, Vektorsuche in Supabase PostgreSQL, semantisches Matching mit Schwellwert 0.5.
-- **Wissensbasis aus echten Produktdaten**: Manuell kuratierte Knowledge Bases für beide Marken (insgesamt ca. 15.000+ Wörter Produktdaten), ingestiert über TypeScript-Ingestion-Pipeline.
-- **Abgrenzungslogik**: Erkennt und behandelt "Thomas Magnete" (Herdorf) und "Rotho Schweiz" korrekt — kein Verwechseln mit nicht-verwandten Firmen.
-- **Artifact-Mode**: Generiert Dokumente (Vergleiche, Anleitungen) im Chat, editierbar über ProseMirror-Editor.
-- **E2E-Tests**: Playwright-Testsuite für Auth, Chat, Model-Selector, API.
+## Implementierter Umfang
 
-## Tech Stack
+- NextAuth-Credentials-Login mit regulären und Guest-User-Flows.
+- Streaming-Chat-Route mit Chat-Historie, Nachrichtenpersistenz und optionalem resumable stream über `REDIS_URL`.
+- RAG-Pfad: OpenAI-Embeddings, Supabase-RPC `match_documents` und Kontext-Injektion für die Chat-Antwort.
+- Chat-Modellauswahl im UI; die aktuelle Provider-Implementierung erzeugt Anthropic-Modelle über `@ai-sdk/anthropic`.
+- Artefakt-/Code-Tools und Markdown-/Code-Darstellung aus dem vorhandenen Chatbot-Template.
+- PNG/JPEG-Upload über Vercel Blob bis 5 MB.
+- Drizzle-Migrationen für Postgres sowie die getrackten Wissensbasen `knowledge_bases/THOMAS_Complete.md` und `knowledge_bases/ROTHO_Complete.md`.
 
-| Ebene | Technologie |
-|---|---|
-| Framework | Next.js 15 (App Router, React 19) |
-| Sprache | TypeScript (strict) |
-| KI-Orchestrierung | Vercel AI SDK 6.x |
-| LLM | Claude Sonnet 4 (Anthropic) |
-| Embeddings | OpenAI text-embedding-3-small |
-| Vektordatenbank | Supabase PostgreSQL + pgvector |
-| Chat-Historie | Vercel Postgres (Neon) |
-| Datei-Speicher | Vercel Blob |
-| Caching | Redis (Upstash) |
-| Auth | Auth.js v5 (NextAuth) |
-| UI | shadcn/ui, Tailwind CSS 4, Radix UI |
-| Testing | Playwright (4 E2E-Spezifikationen) |
-| Hosting | Vercel |
+## Evidence-backed stack
 
-## Architektur
+- Next.js 16.0.10, React 19.0.1, TypeScript und pnpm 9.12.3.
+- AI SDK 6.0.37, `@ai-sdk/anthropic`, `@ai-sdk/openai` und `@ai-sdk/gateway` im Manifest; der tatsächlich verdrahtete Runtime-Provider ist Anthropic und der Default ist `claude-sonnet-4-5`.
+- Drizzle ORM + `postgres` für Postgres.
+- Supabase JavaScript-Client für die Vektor-Suche.
+- NextAuth 5 beta, Vercel Blob, `resumable-stream`, Tailwind CSS 4 und Radix UI.
 
-```
-User Input
-    │
-    ▼
-┌─────────────────┐
-│  Chat Route API  │  app/(chat)/api/chat/route.ts
-└────────┬────────┘
-         │
-    ┌────▼────┐
-    │  RAG     │  searchKnowledgeBase() → pgvector match_documents()
-    │  Search  │  OpenAI Embedding → Supabase RPC
-    └────┬────┘
-         │ Kontext-Dokumente
-    ┌────▼────┐
-    │  Prompt  │  buildRAGSystemPrompt() → Claude Sonnet 4
-    │  Builder │  + customSystemPrompt (Thoro Persona)
-    └────┬────┘
-         │
-    ┌────▼────┐
-    │  Stream  │  Vercel AI SDK streamText()
-    │  Response│  UI Message Stream → React Client
-    └─────────┘
-```
-
-## Projektstruktur
-
-```
-.
-├── app/
-│   ├── (auth)/          # Auth.js Login/Register
-│   ├── (chat)/           # Chat-Interface + API Routes
-│   │   ├── api/chat/     # Chat-API mit RAG-Integration
-│   │   └── page.tsx      # Chat-UI
-│   └── layout.tsx        # Root Layout (Metadata, Theme)
-├── components/           # UI-Komponenten
-│   ├── hero-section.tsx  # Landing Page mit Stats
-│   ├── mode-selector.tsx # THOMAS vs ROTHO Auswahl
-│   ├── chat-header.tsx   # Branding Header
-│   └── ...
-├── lib/
-│   ├── ai/               # Prompts, Provider, Tools
-│   │   ├── prompts.ts    # Thoro System-Prompt (150+ Zeilen)
-│   │   ├── providers.ts  # Modell-Konfiguration
-│   │   └── tools/        # createDocument, getWeather, etc.
-│   ├── db/               # Drizzle ORM + Supabase Schema
-│   ├── embeddings.ts     # OpenAI Embedding Client
-│   ├── supabase.ts       # Supabase Client (pgvector)
-│   └── ...
-├── knowledge_bases/      # Kuratierte Produktdaten
-│   ├── THOMAS_Complete.md  # Staubsauger (AQUA+, Zyklon, PET)
-│   └── ROTHO_Complete.md   # Industrieanlagen (Trocknung, Filter)
-├── scripts/
-│   └── ingest-manual.ts  # Wissensbasis → Embeddings → Supabase
-├── tests/
-│   ├── e2e/              # Playwright E2E-Tests
-│   └── fixtures.ts
-└── PROJECT_CONTEXT.md    # Entwickler-Dokumentation (Deutsch)
-```
-
-## Local Setup
+## Setup und Verwendung
 
 ```bash
-# 1. Dependencies
 pnpm install
-
-# 2. Environment
 cp .env.example .env.local
-# → Trage ANTHROPIC_API_KEY, OPENAI_API_KEY, SUPABASE_* Keys ein
-
-# 3. Supabase Schema (pgvector + match_documents Funktion einrichten)
-# Siehe PROJECT_CONTEXT.md für die SQL-Migration
-
-# 4. Wissensbasis ingestieren
-pnpm tsx scripts/ingest-manual.ts
-
-# 5. Datenbank migrieren (Chat-Historie)
 pnpm db:migrate
-
-# 6. Dev-Server starten
 pnpm dev
-# → http://localhost:3000
 ```
 
-## Deployment (Vercel)
+Vor dem Start müssen mindestens die zu verwendenden Secrets und Dienste konfiguriert werden. Die Namen sind im Beispiel-Env dokumentiert; je nach Funktionsumfang gehören dazu `AUTH_SECRET`, `POSTGRES_URL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, die Supabase-URL/der anonyme Key und für Uploads `BLOB_READ_WRITE_TOKEN`. `REDIS_URL` ist für resumable streams optional.
 
-```bash
-vercel --prod
-```
+Für die RAG-Nutzung müssen die Supabase-Dokumenttabellen, Embeddings und die im Chat-Code aufgerufene RPC-Funktion `match_documents` in der externen Supabase-Instanz vorhanden sein. Die lokalen Drizzle-Migrationen betreffen die Chat-/User-Datenbank und ersetzen diese Vektor-Infrastruktur nicht.
 
-Umgebungsvariablen in Vercel Dashboard setzen (siehe `.env.example`). AI Gateway wird auf Vercel automatisch via OIDC authentifiziert.
+Die vorhandenen Ingest-Skripte können die getrackten Wissensbasen mit einem konfigurierten Embedding- und Supabase-Setup importieren. Ohne diese Dienste ist der UI-Code nicht gleichbedeutend mit einem funktionierenden, produktiven Chatbot.
 
-## Tests
+## Geplanter / nicht belegter Umfang
 
-```bash
-pnpm test
-# Führt Playwright E2E-Tests aus:
-# - Auth (Login/Register)
-# - Chat (Nachrichten senden, RAG-Antworten)
-# - Model Selector (Modell-Wechsel)
-# - API (Chat-Endpunkt)
-```
+Die Modellliste im UI enthält mehrere Provider-/Modell-IDs. Im aktuellen `getLanguageModel`-Pfad ist jedoch nur die Anthropic-Erzeugung verdrahtet; funktionierende OpenAI-, Google- oder xAI-Auswahl wird deshalb nicht als geliefert dokumentiert. Kein belastbarer Produktionsbetrieb, keine geprüfte anonyme Demo-URL und kein unabhängiger Antwortqualitäts-Benchmark sind im Repository belegt.
 
----
+## Einschränkungen
 
-**Gebaut für Robert Thomas GmbH + Co. KG, Neunkirchen, Siegerland.**
-
-*THOMAS — AQUA+ Technologie. ROTHO — Industrielle Trocknungssysteme. Made in Germany.*
+- Betrieb benötigt externe Postgres-, Supabase-, Embedding-, Anthropic- und gegebenenfalls Blob-/Redis-Dienste.
+- Guest-Login legt Nutzer in der Datenbank an; ohne `POSTGRES_URL` und Migrationen scheitert der Auth-/Chat-Flow.
+- Die RAG-Abfrage hängt von einer korrekt eingerichteten Supabase-RPC-Funktion und kompatiblen Vektordaten ab.
+- Modellnamen im UI dürfen nicht mit tatsächlich unterstützten Runtime-Providern verwechselt werden.
+- Uploads sind auf JPEG/PNG und 5 MB begrenzt und benötigen einen Vercel-Blob-Token.
+- Es gibt keinen verifizierten anonymen öffentlichen Deployment-Link in dieser Dokumentation.
