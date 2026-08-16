@@ -4,10 +4,11 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
 
 jobs:
   test:
-    timeout-minutes: 30
+    timeout-minutes: 90
     runs-on: ubuntu-latest
     env:
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
