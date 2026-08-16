@@ -1,6 +1,6 @@
-import { HeroSection } from '@/components/hero-section'
-import { ModeSelector } from '@/components/mode-selector'
-import { TrustSection } from '@/components/trust-section'
+import { HeroSection } from "@/components/hero-section";
+import { ModeSelector } from "@/components/mode-selector";
+import { TrustSection } from "@/components/trust-section";
 
 export default function LandingPage() {
   return (
@@ -9,5 +9,5 @@ export default function LandingPage() {
       <ModeSelector />
       <TrustSection />
     </div>
-  )
+  );
 }

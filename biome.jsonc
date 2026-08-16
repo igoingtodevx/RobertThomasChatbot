@@ -29,7 +29,11 @@
         "noExplicitAny": "off",
         "noUnknownAtRules": "off",
         "noConsole": "off",
-        "noBitwiseOperators": "off"
+        "noBitwiseOperators": "off",
+        // Console/web-preview stream parts use composite index keys; the
+        // underlying parts have no stable unique id, so this advisory rule
+        // would force fragile value-based keys.
+        "noArrayIndexKey": "off"
       },
       "style": {
         "noMagicNumbers": "off",
@@ -37,7 +41,6 @@
         "useConsistentTypeDefinitions": "off"
       },
       "nursery": {
-        "noUnnecessaryConditions": "off",
         "useSortedClasses": "off"
       },
       "complexity": {

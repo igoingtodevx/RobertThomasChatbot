@@ -18,12 +18,14 @@ function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
     {
       heading: "Für Zuhause",
       subheading: "Tierhaare & Parkett",
-      message: "Welcher Staubsauger ist am besten für Tierhaare und Parkett geeignet?",
+      message:
+        "Welcher Staubsauger ist am besten für Tierhaare und Parkett geeignet?",
     },
     {
       heading: "Für Industrie",
       subheading: "Energiekosten senken",
-      message: "Wie können wir die Energiekosten bei der Ziegeltrocknung senken?",
+      message:
+        "Wie können wir die Energiekosten bei der Ziegeltrocknung senken?",
     },
     {
       heading: "Service & Support",
@@ -61,8 +63,12 @@ function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
             }}
             suggestion={action.message}
           >
-            <span className="font-semibold text-sm text-foreground">{action.heading}</span>
-            <span className="text-xs text-muted-foreground">{action.subheading}</span>
+            <span className="font-semibold text-sm text-foreground">
+              {action.heading}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {action.subheading}
+            </span>
           </Suggestion>
         </motion.div>
       ))}

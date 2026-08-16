@@ -327,17 +327,33 @@
 
 /* Atmospheric gradient background */
 .thoro-gradient {
-  background: 
-    radial-gradient(circle at 10% 20%, rgba(0, 102, 204, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 90% 80%, rgba(255, 107, 53, 0.06) 0%, transparent 50%),
+  background:
+    radial-gradient(
+      circle at 10% 20%,
+      rgba(0, 102, 204, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 90% 80%,
+      rgba(255, 107, 53, 0.06) 0%,
+      transparent 50%
+    ),
     hsl(var(--background));
 }
 
 /* Light mode: Much more subtle */
 :root:not(.dark) .thoro-gradient {
-  background: 
-    radial-gradient(circle at 10% 20%, rgba(0, 102, 204, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 90% 80%, rgba(255, 107, 53, 0.02) 0%, transparent 50%),
+  background:
+    radial-gradient(
+      circle at 10% 20%,
+      rgba(0, 102, 204, 0.03) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 90% 80%,
+      rgba(255, 107, 53, 0.02) 0%,
+      transparent 50%
+    ),
     hsl(var(--background));
 }
 

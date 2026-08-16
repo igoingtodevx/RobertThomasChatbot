@@ -9,7 +9,8 @@ import { SessionProvider } from "next-auth/react";
 export const metadata: Metadata = {
   metadataBase: new URL("https://chat.vercel.ai"),
   title: "Thoro | Robert Thomas AI",
-  description: "Ihr KI-Assistent für Robert Thomas Staubsauger und Rotho Industrietechnik.",
+  description:
+    "Ihr KI-Assistent für Robert Thomas Staubsauger und Rotho Industrietechnik.",
 };
 
 export const viewport = {

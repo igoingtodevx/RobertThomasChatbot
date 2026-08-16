@@ -1,12 +1,19 @@
 import OpenAI from "openai";
 
-const openaiKey = process.env.OPENAI_API_KEY;
+// Lazy singleton: the OpenAI client is only created on first use, so importing
+// this module during `next build` never requires OPENAI_API_KEY.
+let openai: OpenAI | null = null;
 
-if (!openaiKey) {
-  throw new Error("Missing OpenAI API key (OPENAI_API_KEY)");
+function getOpenAI(): OpenAI | null {
+  const openaiKey = process.env.OPENAI_API_KEY;
+  if (!openaiKey) {
+    return null;
+  }
+  if (!openai) {
+    openai = new OpenAI({ apiKey: openaiKey });
+  }
+  return openai;
 }
-
-const openai = new OpenAI({ apiKey: openaiKey });
 
 /**
  * Generiert ein Embedding für einen gegebenen Text mit OpenAI.
@@ -14,8 +21,12 @@ const openai = new OpenAI({ apiKey: openaiKey });
  * @returns Ein Array mit dem Embedding-Vektor.
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
+  const client = getOpenAI();
+  if (!client) {
+    throw new Error("Missing OpenAI API key (OPENAI_API_KEY)");
+  }
   try {
-    const response = await openai.embeddings.create({
+    const response = await client.embeddings.create({
       model: "text-embedding-3-small",
       input: text,
     });

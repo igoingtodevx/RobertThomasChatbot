@@ -21,16 +21,17 @@ const runMigrate = async () => {
     // Versuche die Migration
     await migrate(db, { migrationsFolder: "./lib/db/migrations" });
     console.log("✅ Migrations completed successfully");
-    
   } catch (error: any) {
     // Fehler-Analyse: Ist es nur ein "Gibt es schon" Fehler?
-    const isSafeError = 
-      error.message?.includes("already exists") || 
+    const isSafeError =
+      error.message?.includes("already exists") ||
       error.code === "42P07" || // relation exists
-      error.code === "42701";   // column exists
+      error.code === "42701"; // column exists
 
     if (isSafeError) {
-      console.warn("⚠️ Database already exists. Skipping creation. (This is fine!)");
+      console.warn(
+        "⚠️ Database already exists. Skipping creation. (This is fine!)"
+      );
     } else {
       // Auch bei anderen Fehlern: Nur warnen, NICHT abstürzen!
       console.warn("⚠️ Migration warning:", error.message);

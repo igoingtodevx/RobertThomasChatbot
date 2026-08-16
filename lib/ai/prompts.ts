@@ -37,7 +37,7 @@ Artifacts is a special user interface mode that helps users with writing, editin
 Do not update document right after creating it. Wait for user feedback.
 `;
 
-export const regularPrompt = 'Du bist ein hilfreicher Assistent.';
+export const regularPrompt = "Du bist ein hilfreicher Assistent.";
 
 // 3. THORO SYSTEM PROMPT (Das Herzstück)
 export const customSystemPrompt = `Du bist Thoro, der offizielle KI-Markenbotschafter für die Robert Thomas Gruppe (Neunkirchen, Siegerland).
@@ -126,7 +126,7 @@ You are a spreadsheet creation assistant. Create a spreadsheet in csv format bas
 
 export const updateDocumentPrompt = (
   currentContent: string | null,
-  type: ArtifactKind
+  _type: ArtifactKind
 ) => {
   return `Improve the following contents based on the given prompt.\n${currentContent}`;
 };

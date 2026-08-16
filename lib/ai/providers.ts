@@ -1,12 +1,6 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import {
-  customProvider,
-  extractReasoningMiddleware,
-  wrapLanguageModel,
-} from "ai";
+import { customProvider } from "ai";
 import { isTestEnvironment } from "../constants";
-
-const THINKING_SUFFIX_REGEX = /-thinking$/;
 
 export const myProvider = isTestEnvironment
   ? (() => {
@@ -39,9 +33,8 @@ export function getLanguageModel(modelId: string) {
   if (provider === "anthropic") {
     // TRICK: "as any" verhindert den TypeScript-Fehler beim Build
     return anthropic(model) as any;
-  } else {
-    throw new Error(`Unsupported provider: ${provider}`);
   }
+  throw new Error(`Unsupported provider: ${provider}`);
 }
 
 export function getTitleModel() {

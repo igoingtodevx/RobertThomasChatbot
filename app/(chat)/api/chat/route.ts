@@ -30,15 +30,14 @@ import {
   updateMessage,
 } from "@/lib/db/queries";
 import type { DBMessage } from "@/lib/db/schema";
+import { generateEmbedding } from "@/lib/embeddings";
 import { ChatSDKError } from "@/lib/errors";
+// RAG Imports
+import { getSupabase } from "@/lib/supabase";
 import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
-
-// RAG Imports
-import { supabase } from "@/lib/supabase";
-import { generateEmbedding } from "@/lib/embeddings";
 
 export const maxDuration = 60;
 
@@ -56,9 +55,16 @@ interface DocumentMatch {
 }
 
 async function searchKnowledgeBase(query: string): Promise<DocumentMatch[]> {
+  // Supabase is optional at startup: without env the app still builds and
+  // serves, it just degrades to a non-RAG chat. Same for missing OpenAI key.
+  const supabase = getSupabase();
+  if (!supabase) {
+    return [];
+  }
+
   try {
     const embedding = await generateEmbedding(query);
-    
+
     const { data, error } = await supabase.rpc("match_documents", {
       query_embedding: embedding,
       match_threshold: 0.5,
@@ -217,20 +223,25 @@ export async function POST(request: Request) {
     const modelMessages = await convertToModelMessages(uiMessages);
 
     // RAG: Extrahiere die letzte User-Nachricht für die Suche
-    const lastUserMessage = uiMessages
-      .filter((m) => m.role === "user")
-      .pop();
-    
+    const lastUserMessage = uiMessages.filter((m) => m.role === "user").pop();
+
     let ragContext = "";
     if (lastUserMessage) {
       // Extrahiere Text aus der Nachricht
-      const userQuery = lastUserMessage.parts
-        ?.filter((part): part is { type: "text"; text: string } => part.type === "text")
-        .map((part) => part.text)
-        .join(" ") || "";
-      
+      const userQuery =
+        lastUserMessage.parts
+          ?.filter(
+            (part): part is { type: "text"; text: string } =>
+              part.type === "text"
+          )
+          .map((part) => part.text)
+          .join(" ") || "";
+
       if (userQuery) {
-        console.log("🔍 RAG: Searching knowledge base for:", userQuery.substring(0, 100));
+        console.log(
+          "🔍 RAG: Searching knowledge base for:",
+          userQuery.slice(0, 100)
+        );
         const matchedDocs = await searchKnowledgeBase(userQuery);
         console.log(`📚 RAG: Found ${matchedDocs.length} matching documents`);
         ragContext = buildRAGContext(matchedDocs);
@@ -239,7 +250,10 @@ export async function POST(request: Request) {
 
     // RAG: Erweitere den System-Prompt mit Kontext
     const baseSystemPrompt = systemPrompt({ selectedChatModel, requestHints });
-    const enhancedSystemPrompt = buildRAGSystemPrompt(baseSystemPrompt, ragContext);
+    const enhancedSystemPrompt = buildRAGSystemPrompt(
+      baseSystemPrompt,
+      ragContext
+    );
 
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,

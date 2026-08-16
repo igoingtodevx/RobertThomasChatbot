@@ -1,4 +1,4 @@
-name: Lint
+name: Lint, Typecheck & Build
 on:
   push:
 
@@ -23,3 +23,12 @@ jobs:
         run: pnpm install
       - name: Run lint
         run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      # The production build must succeed WITHOUT any secrets or a live
+      # database (lazy Supabase/OpenAI clients; migrations are not part of
+      # the build). This guards the clean-build property.
+      - name: Build
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
