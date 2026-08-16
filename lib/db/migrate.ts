@@ -6,6 +6,7 @@ import postgres from "postgres";
 config({ path: ".env.local" });
 
 const runMigrate = async () => {
+  let failed = false;
   // Sicherheits-Check: Wenn keine URL da ist, brich nicht ab, sondern beende friedlich.
   if (!process.env.POSTGRES_URL) {
     console.warn("⚠️ POSTGRES_URL not found. Skipping migration.");
@@ -33,14 +34,15 @@ const runMigrate = async () => {
         "⚠️ Database already exists. Skipping creation. (This is fine!)"
       );
     } else {
-      // Auch bei anderen Fehlern: Nur warnen, NICHT abstürzen!
+      // Echte Fehler: warnen UND mit Exit-Code 1 beenden,
+      // damit manuelle Migrations-Läufe Fehler nicht verschlucken.
       console.warn("⚠️ Migration warning:", error.message);
+      failed = true;
     }
   }
 
-  // WICHTIG: Immer erfolgreich beenden (Exit Code 0), damit Vercel weitermacht
   await connection.end();
-  process.exit(0);
+  process.exit(failed ? 1 : 0);
 };
 
 runMigrate();
